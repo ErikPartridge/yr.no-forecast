@@ -24,9 +24,9 @@
     "lodash.find": "~4.6.0",
     "lodash.foreach": "~4.5.0",
     "moment": "~2.22.0",
-    "pixl-xml": "~1.0.10",
+    "pixl-xml": "https://github.com/ErikPartridge/pixl-xml",
     "verror": "~1.9.0",
-    "yr.no-interface": "~1.2.0"
+    "yr.no-interface": "https://github.com/ErikPartridge/yr.no-interface#b9961a0cf034741f3a451d717d6c119a8a03517a"
   },
   "license": "MIT",
   "repository": {
