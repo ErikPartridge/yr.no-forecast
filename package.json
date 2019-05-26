@@ -18,7 +18,7 @@
   "dependencies": {
     "debug": "4.1.1",
     "moment": "^2",
-    "pixl-xml": "https://github.com/ErikPartridge/pixl-xml",
+    "pixl-xml": "https://github.com/ErikPartridge/pixl-xml#ca8acd694cdb0af890ba10b44c819e0781910a51",
     "yr.no-interface": "https://github.com/ErikPartridge/yr.no-interface"
   },
   "license": "MIT",
