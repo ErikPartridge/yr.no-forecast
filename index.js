@@ -1,10 +1,8 @@
 'use strict';
 
-const log = require('debug')(require('./package.json').name);
 const moment = require('moment');
 const XML = require('pixl-xml');
 const VError = require('verror');
-const each = require('lodash.foreach');
 const Promise = require('bluebird');
 
 /**
@@ -57,8 +55,6 @@ module.exports = (config) => {
     getWeather: (params, version) => {
       version = version || config.version;
 
-      log('requesting a locationforecast using API version %s', version);
-
       return Promise.fromCallback(function (callback) {
         // Make a standard call to the API
         yrno.locationforecast({
@@ -66,12 +62,9 @@ module.exports = (config) => {
           version: version
         }, function(err, body) {
           if (err) {
-            log('failed to get locationforecast from yr.no API. Error:', err);
             return callback(err, null);
           }
 
-
-          log('successfully retrieved locationforecast report from yr.no');
 
           // Wrap the response from API
           callback(null, new LocationForecast(body));
@@ -94,21 +87,17 @@ function LocationForecast(xml) {
     // e.g '2017-04-29T01:00:00Z': { DATA HERE }
   };
 
-  log('building LocationForecast object by parsing xml to JSON');
 
   var startDt = Date.now();
 
   // Parse to JSON and return this object on success
   try {
     this.json = XML.parse(xml, {preserveDocumentNode: true});
-    log('parsing xml to json took %dms', Date.now() - startDt);
   } catch (e) {
     throw new VError(e, 'failed to parse returned xml string to JSON');
   }
 
   this._init();
-
-  log('LocationForecast init complete in %sms', Date.now() - startDt);
 
   return this;
 }
@@ -117,7 +106,7 @@ LocationForecast.prototype = {
   _init: function () {
     var self = this;
 
-    each(this.json.weatherdata.product.time, function (node) {
+    this.json.weatherdata.product.time.forEach(function (node) {
       const simple = isSimpleNode(node);
       const temps = hasTemperatureRange(node);
 
@@ -208,16 +197,12 @@ LocationForecast.prototype = {
     const baseDate = startDate.clone().set('hour', 12).startOf('hour');
     let firstDate = baseDate.clone();
 
-    log(`five day summary is using ${baseDate.toString()} as a starting point`);
-
     /* istanbul ignore else  */
     if (firstDate.isBefore(startDate)) {
       // first date is unique since we may not have data back to midday so instead we
       // go with the earliest available
       firstDate = startDate.clone();
     }
-
-    log(`getting five day summary starting with ${firstDate.toISOString()}`);
 
     return Promise.all([
       this.getForecastForTime(firstDate),
@@ -267,8 +252,6 @@ LocationForecast.prototype = {
       time.startOf('hour');
     }
 
-    log('getForecastForTime', dateToForecastISO(time));
-
     let data = this.times[dateToForecastISO(time)] || null;
 
     /* istanbul ignore else  */
@@ -287,7 +270,6 @@ LocationForecast.prototype = {
 
 
   fallbackSelector: function (date) {
-    log('using fallbackSelector for date', date);
 
     const datetimes = Object.keys(this.times);
 
