@@ -50,7 +50,7 @@ module.exports = (config) => {
      * @param {String}    [version]
      */
 
-    getWeather: (params, version) => {
+    async getWeather(params, version) {
       version = version || config.version;
 
       return new Promise(function (resolve, reject) {
@@ -80,16 +80,14 @@ class LocationForecast {
     this.times = {
       // e.g '2017-04-29T01:00:00Z': { DATA HERE }
     };
-  
+    
   
     var startDt = Date.now();
   
     // Parse to JSON and return this object on success
     try {
-      console.log(xml);
       this.json = XML.parse(xml, {preserveDocumentNode: true});
     } catch (e) {
-      console.error(e);
       throw new Error('failed to parse returned xml string to JSON');
     }
 
@@ -179,7 +177,8 @@ class LocationForecast {
    * @param {Function} callback
    */
   async getFiveDaySummary() {
-    const startDate = moment.utc(this.getFirstDateInPayload());
+    let startDate = moment.utc(this.getFirstDateInPayload());
+    startDate = startDate.minutes(-59);
     const baseDate = startDate.clone().set('hour', 12).startOf('hour');
     let firstDate = baseDate.clone();
 
