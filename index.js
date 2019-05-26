@@ -2,7 +2,6 @@
 
 const moment = require('moment');
 const XML = require('pixl-xml');
-const VError = require('verror');
 const Promise = require('bluebird');
 
 /**
@@ -94,7 +93,7 @@ function LocationForecast(xml) {
   try {
     this.json = XML.parse(xml, {preserveDocumentNode: true});
   } catch (e) {
-    throw new VError(e, 'failed to parse returned xml string to JSON');
+    throw new Error('failed to parse returned xml string to JSON');
   }
 
   this._init();
