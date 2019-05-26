@@ -4,10 +4,8 @@
   "description": "retrieve a weather forecast for a given time and location from met.no",
   "main": "./index.js",
   "scripts": {
-    "test": "date && npm run lint && npm run unit && npm run coverage",
+    "test": "date && npm run unit && npm run coverage",
     "lint": "npm run eslint && npm run linelint",
-    "eslint": "eslint index.js test/*.js",
-    "linelint": "linelint -l 120 index.js test/*.js",
     "unit": "NODE_PATH=. mocha test/",
     "coveralls": "npm run coverage && cat coverage/lcov.info | coveralls",
     "coverage": "NODE_PATH=. nyc mocha test/ && nyc report --reporter=lcov",
@@ -18,11 +16,10 @@
     "index.js"
   ],
   "dependencies": {
-    "bluebird": "~3.5.0",
-    "moment": "~2.22.0",
+    "debug": "4.1.1",
+    "moment": "^2",
     "pixl-xml": "https://github.com/ErikPartridge/pixl-xml",
-    "verror": "~1.9.0",
-    "yr.no-interface": "https://github.com/ErikPartridge/yr.no-interface#b9961a0cf034741f3a451d717d6c119a8a03517a"
+    "yr.no-interface": "https://github.com/ErikPartridge/yr.no-interface"
   },
   "license": "MIT",
   "repository": {
@@ -43,21 +40,18 @@
     "forecast"
   ],
   "engines": {
-    "node": ">=4.4.2"
+    "node": ">=8"
   },
   "author": "Evan Shortiss",
   "devDependencies": {
     "benchmark": "~2.1.4",
     "chai": "~3.5.0",
     "chai-truthy": "~1.0.0",
-    "coveralls": "~2.13.0",
-    "eslint": "~3.19.0",
-    "linelint": "~1.0.1",
-    "mocha": "~3.2.0",
-    "nyc": "~10.2.0",
-    "proxyquire": "~1.7.11",
+    "coveralls": "^3.0.3",
+    "mocha": "^6.1.4",
     "require-uncached": "~1.0.3",
-    "sinon": "~2.1.0"
+    "sinon": "~2.1.0",
+    "proxyquire": "1.8.0"
   },
   "bugs": {
     "url": "https://github.com/evanshortiss/yr.no-forecast/issues"

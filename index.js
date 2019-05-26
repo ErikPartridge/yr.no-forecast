@@ -2,7 +2,6 @@
 
 const moment = require('moment');
 const XML = require('pixl-xml');
-const Promise = require('bluebird');
 
 /**
  * "simple" nodes are those with very basic detail. 1 to 4 of these follow a
@@ -54,19 +53,19 @@ module.exports = (config) => {
     getWeather: (params, version) => {
       version = version || config.version;
 
-      return Promise.fromCallback(function (callback) {
+      return new Promise(function (resolve, reject) {
         // Make a standard call to the API
         yrno.locationforecast({
           query: params,
           version: version
         }, function(err, body) {
           if (err) {
-            return callback(err, null);
+            return reject(err);
           }
 
 
           // Wrap the response from API
-          callback(null, new LocationForecast(body));
+          resolve(new LocationForecast(body));
         });
       });
     }
@@ -74,43 +73,30 @@ module.exports = (config) => {
   };
 };
 
-/**
- * @constructor
- * @param {String} xml
- */
-function LocationForecast(xml) {
-  this.xml = xml;
 
-  // Map containing weather info for given utc times
-  this.times = {
-    // e.g '2017-04-29T01:00:00Z': { DATA HERE }
-  };
-
-
-  var startDt = Date.now();
-
-  // Parse to JSON and return this object on success
-  try {
-    this.json = XML.parse(xml, {preserveDocumentNode: true});
-  } catch (e) {
-    throw new Error('failed to parse returned xml string to JSON');
-  }
-
-  this._init();
-
-  return this;
-}
-
-LocationForecast.prototype = {
-  _init: function () {
-    var self = this;
+class LocationForecast {
+  constructor(xml) {
+    this.xml = xml;
+    this.times = {
+      // e.g '2017-04-29T01:00:00Z': { DATA HERE }
+    };
+  
+  
+    var startDt = Date.now();
+  
+    // Parse to JSON and return this object on success
+    try {
+      this.json = XML.parse(xml, {preserveDocumentNode: true});
+    } catch (e) {
+      throw new Error('failed to parse returned xml string to JSON');
+    }
 
     this.json.weatherdata.product.time.forEach(function (node) {
       const simple = isSimpleNode(node);
       const temps = hasTemperatureRange(node);
 
       if (!simple) {
-        self.times[node.to] = node;
+        this.times[node.to] = node;
       } else {
         // node is a small/simple node with format
         // <time datatype="forecast" from="2017-04-28T22:00:00Z" to="2017-04-28T23:00:00Z">
@@ -120,7 +106,7 @@ LocationForecast.prototype = {
         //   </location>
         // </time>
 
-        const parent = self.times[node.to];
+        const parent = this.times[node.to];
 
         parent.icon = node.location.symbol.id;
         parent.rain = node.location.precipitation.value + ' ' + node.location.precipitation.unit;
@@ -138,60 +124,59 @@ LocationForecast.prototype = {
           parent.maxTemperature = node.location.maxTemperature;
         }
       }
-    });
-  },
-
+    }.bind(this));
+  };
 
   /**
    * Returns the JSON representation of the parsed XML`
    * @return {Object}
    */
-  getJson: function() {
+  getJson(){
     return this.json;
-  },
+  }
 
 
   /**
    * Return the XML string that the met.no api returned
    * @return {String}
    */
-  getXml: function() {
+  getXml() {
     return this.xml;
-  },
+  }
 
 
   /**
    * Returns the earliest ISO timestring available in the weather data
    * @return {String}
    */
-  getFirstDateInPayload: function () {
+  getFirstDateInPayload() {
     return this.json.weatherdata.product.time[0].from;
-  },
+  }
 
 
   /**
    * Returns the latest ISO timestring available in the weather data
    * @return {String}
    */
-  getLastDateInPayload: function () {
+  getLastDateInPayload() {
     return this.json.weatherdata.product.time[this.json.weatherdata.product.time.length - 1].from;
-  },
+  }
 
 
   /**
    * Returns an array of all times that we have weather data for
    * @return {Array<String>}
    */
-  getValidTimestamps: function () {
+  getValidTimestamps() {
     return Object.keys(this.times);
-  },
+  }
 
 
   /**
    * Get five day weather.
    * @param {Function} callback
    */
-  getFiveDaySummary: function() {
+  async getFiveDaySummary() {
     const startDate = moment.utc(this.getFirstDateInPayload());
     const baseDate = startDate.clone().set('hour', 12).startOf('hour');
     let firstDate = baseDate.clone();
@@ -203,72 +188,66 @@ LocationForecast.prototype = {
       firstDate = startDate.clone();
     }
 
-    return Promise.all([
+    return await Promise.all([
       this.getForecastForTime(firstDate),
       this.getForecastForTime(baseDate.clone().add(1, 'days')),
       this.getForecastForTime(baseDate.clone().add(2, 'days')),
       this.getForecastForTime(baseDate.clone().add(3, 'days')),
       this.getForecastForTime(baseDate.clone().add(4, 'days'))
-    ])
-      .then(function (results) {
-        // Return a single array of objects
-        return Array.prototype.concat.apply([], results);
-      });
-  },
-
+    ]);
+  }
 
   /**
    * Verifies if the pased timestamp is a within range for the weather data
    * @param  {String|Number|Date}  time
    * @return {Boolean}
    */
-  isInRange: function (time) {
+  isInRange(time) {
     return moment.utc(time)
       .isBetween(
         moment(this.getFirstDateInPayload()),
         moment(this.getLastDateInPayload())
       );
-  },
-
+  }
 
   /**
    * Returns a forecast for a given time.
    * @param {String|Date} time
    * @param {Function}    callback
    */
-  getForecastForTime: function (time) {
+  getForecastForTime(time) {
     time = moment.utc(time);
 
-    if (time.isValid() === false) {
-      return Promise.reject(
-        new Error('Invalid date provided for weather lookup')
-      );
-    }
+    return new Promise((resolve, reject) => {
+      if (time.isValid() === false) {
+        reject(new Error('Invalid date provided for weather lookup'));
+      }
 
-    if (time.minute() > 30) {
-      time.add('hours', 1).startOf('hour');
-    } else {
-      time.startOf('hour');
-    }
+      if (time.minute() > 30) {
+        time.add('hours', 1).startOf('hour');
+      } else {
+        time.startOf('hour');
+      }
 
-    let data = this.times[dateToForecastISO(time)] || null;
+      let data = this.times[dateToForecastISO(time)] || null;
 
-    /* istanbul ignore else  */
-    if (!data && this.isInRange(time)) {
-      data = this.fallbackSelector(time);
-    }
+      /* istanbul ignore else  */
+      if (!data && this.isInRange(time)) {
+        data = this.fallbackSelector(time);
+      }
 
-    /* istanbul ignore else  */
-    if (data) {
-      data = Object.assign({}, data, data.location);
-      delete data.location;
-    }
+      /* istanbul ignore else  */
+      if (data) {
+        data = Object.assign({}, data, data.location);
+        delete data.location;
+      }
 
-    return Promise.resolve(data);
-  },
+      resolve(data);
+    });
+  }
 
 
-  fallbackSelector: function (date) {
+  fallbackSelector (date) {
 
     const datetimes = Object.keys(this.times);
 
@@ -299,4 +278,6 @@ LocationForecast.prototype = {
 
     return closest;
   }
-};
+
+
+}
