@@ -86,8 +86,10 @@ class LocationForecast {
   
     // Parse to JSON and return this object on success
     try {
+      console.log(xml);
       this.json = XML.parse(xml, {preserveDocumentNode: true});
     } catch (e) {
+      console.error(e);
       throw new Error('failed to parse returned xml string to JSON');
     }
 

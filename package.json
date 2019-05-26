@@ -40,7 +40,7 @@
     "forecast"
   ],
   "engines": {
-    "node": ">=8"
+    "node": ">=10"
   },
   "author": "Evan Shortiss",
   "devDependencies": {
